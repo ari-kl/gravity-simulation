@@ -62,6 +62,12 @@ func (m *Mass) ApplyGravitation(game *Game) {
 			dx := other.x - m.x
 			dy := other.y - m.y
 			r_squared := dx*dx + dy*dy
+
+			// Prevent division by zero so the simulation doesn't break
+			if r_squared == 0 {
+				r_squared = 0.0001
+			}
+
 			force := (game.G * m.mass * other.mass) / r_squared
 			forcex := force * dx
 			forcey := force * dy

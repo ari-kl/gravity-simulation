@@ -13,45 +13,69 @@ import (
 )
 
 type Game struct {
-	masses     []*Mass
-	G          float32
-	fieldLines bool
+	masses      []*Mass
+	G           float32
+	fieldLines  bool
+	paused      bool
+	currentMass int
 }
 
 func (g *Game) Update() error {
 	mx, my := ebiten.CursorPosition()
 
 	if inpututil.IsKeyJustPressed(ebiten.Key1) {
-		g.masses = append(g.masses, NewMass(1, float32(mx), float32(my)))
+		g.currentMass = 1
 	} else if inpututil.IsKeyJustPressed(ebiten.Key2) {
-		g.masses = append(g.masses, NewMass(2, float32(mx), float32(my)))
+		g.currentMass = 2
 	} else if inpututil.IsKeyJustPressed(ebiten.Key3) {
-		g.masses = append(g.masses, NewMass(3, float32(mx), float32(my)))
+		g.currentMass = 3
 	} else if inpututil.IsKeyJustPressed(ebiten.Key4) {
-		g.masses = append(g.masses, NewMass(4, float32(mx), float32(my)))
+		g.currentMass = 4
 	} else if inpututil.IsKeyJustPressed(ebiten.Key5) {
-		g.masses = append(g.masses, NewMass(5, float32(mx), float32(my)))
+		g.currentMass = 5
 	} else if inpututil.IsKeyJustPressed(ebiten.Key6) {
-		g.masses = append(g.masses, NewMass(6, float32(mx), float32(my)))
+		g.currentMass = 6
 	} else if inpututil.IsKeyJustPressed(ebiten.Key7) {
-		g.masses = append(g.masses, NewMass(7, float32(mx), float32(my)))
+		g.currentMass = 7
 	} else if inpututil.IsKeyJustPressed(ebiten.Key8) {
-		g.masses = append(g.masses, NewMass(8, float32(mx), float32(my)))
+		g.currentMass = 8
 	} else if inpututil.IsKeyJustPressed(ebiten.Key9) {
-		g.masses = append(g.masses, NewMass(9, float32(mx), float32(my)))
+		g.currentMass = 9
 	} else if inpututil.IsKeyJustPressed(ebiten.Key0) {
-		g.masses = []*Mass{}
+		g.currentMass = 10
 	} else if inpututil.IsKeyJustPressed(ebiten.KeyF) {
 		g.fieldLines = !g.fieldLines
+	} else if inpututil.IsKeyJustPressed(ebiten.KeyBackspace) {
+		g.masses = []*Mass{}
 	} else if inpututil.IsKeyJustPressed(ebiten.KeyMinus) {
 		g.G -= 0.05
 	} else if inpututil.IsKeyJustPressed(ebiten.KeyEqual) {
 		g.G += 0.05
+	} else if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
+		g.paused = !g.paused
 	}
 
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+		g.masses = append(g.masses, NewMass(float32(g.currentMass), float32(mx), float32(my)))
+	}
+
+	dx, dy := ebiten.Wheel()
+
 	for _, m := range g.masses {
-		m.ApplyGravitation(g)
-		m.Update()
+		m.x += float32(dx)
+		m.y += float32(dy)
+
+		for pos := range m.pathpos {
+			m.pathpos[pos][0] += float32(dx)
+			m.pathpos[pos][1] += float32(dy)
+		}
+	}
+
+	if !g.paused {
+		for _, m := range g.masses {
+			m.ApplyGravitation(g)
+			m.Update()
+		}
 	}
 
 	return nil
@@ -86,7 +110,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		m.Draw(screen)
 	}
 
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("Press 1-9 to add a mass, 0 to clear all masses, F to toggle field lines, -/+ to decrease/increase force strength\nG: %.2f", g.G))
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("Click to place masses\nPress number keys to set mass value, backspace to clear all masses, F to toggle field lines, Space to pause, -/+ to decrease/increase force strength\nCurrent Mass: %d\nG: %.2f", g.currentMass, g.G))
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
@@ -98,9 +122,11 @@ func main() {
 	ebiten.SetWindowTitle("Gravity!")
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 	if err := ebiten.RunGame(&Game{
-		masses:     []*Mass{},
-		G:          0.1,
-		fieldLines: true,
+		masses:      []*Mass{},
+		G:           0.1,
+		fieldLines:  true,
+		paused:      false,
+		currentMass: 1,
 	}); err != nil {
 		log.Fatal(err)
 	}
